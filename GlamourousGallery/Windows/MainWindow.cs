@@ -464,14 +464,14 @@ public sealed class MainWindow : Window, IDisposable
     private string GetTagSortKey(GalleryEntry entry)
     {
         if (entry.Design == null)
-            return string.Empty;
+            return "\uFFFF";
 
         return entry.Design.GlamourerTags
             .Concat(plugin.GetDesignConfig(entry.Design.Identifier).Tags)
             .Where(t => !string.IsNullOrWhiteSpace(t))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault() ?? string.Empty;
+            .FirstOrDefault() ?? "\uFFFF";
     }
 
     private string GetDesignSubtitle(GlamourerDesign design)
