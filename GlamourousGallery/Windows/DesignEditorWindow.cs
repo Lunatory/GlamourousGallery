@@ -16,6 +16,7 @@ public sealed class DesignEditorWindow : Window, IDisposable
     private readonly Plugin plugin;
     private readonly FileDialogManager fileDialogManager = new();
     private GlamourerDesign? design;
+    private string folderPath = string.Empty;
     private string newTag = string.Empty;
     private string imagePath = string.Empty;
     private float zoom = 1f;
@@ -36,6 +37,18 @@ public sealed class DesignEditorWindow : Window, IDisposable
     public void Open(GlamourerDesign selectedDesign)
     {
         design = selectedDesign;
+        folderPath = string.Empty;
+        newTag = string.Empty;
+        imagePath = string.Empty;
+        zoom = 1f;
+        pan = Vector2.Zero;
+        IsOpen = true;
+    }
+
+    public void OpenFolder(string selectedFolderPath)
+    {
+        design = null;
+        folderPath = Plugin.NormalizeFolderPath(selectedFolderPath);
         newTag = string.Empty;
         imagePath = string.Empty;
         zoom = 1f;
@@ -49,13 +62,22 @@ public sealed class DesignEditorWindow : Window, IDisposable
     {
         if (design != null)
             WindowName = $"{design.Name}###GlamourousGalleryDesignOptions";
+        else if (!string.IsNullOrEmpty(folderPath))
+            WindowName = $"{GetFolderName(folderPath)}###GlamourousGalleryDesignOptions";
     }
 
     public override void Draw()
     {
+        if (design == null && string.IsNullOrEmpty(folderPath))
+        {
+            ImGui.TextUnformatted("No design or folder selected.");
+            return;
+        }
+
         if (design == null)
         {
-            ImGui.TextUnformatted("No design selected.");
+            DrawFolderOptions();
+            fileDialogManager.Draw();
             return;
         }
 
@@ -142,7 +164,7 @@ public sealed class DesignEditorWindow : Window, IDisposable
         if (!ImGui.CollapsingHeader("Thumbnail", ImGuiTreeNodeFlags.DefaultOpen))
             return;
 
-        var currentThumbnail = plugin.ThumbnailPath(design!.Identifier);
+        var currentThumbnail = plugin.ThumbnailPath(design!.Identifier, plugin.GetDesignConfig(design.Identifier));
         ImGui.TextUnformatted(File.Exists(currentThumbnail) ? "Custom thumbnail set." : "No custom thumbnail set.");
 
         if (ImGui.Button("Select PNG"))
@@ -154,6 +176,57 @@ public sealed class DesignEditorWindow : Window, IDisposable
             if (ImGui.Button("Remove"))
             {
                 File.Delete(currentThumbnail);
+                plugin.GetDesignConfig(design.Identifier).ThumbnailRevision = 0;
+                plugin.Configuration.Save();
+            }
+        }
+    }
+
+    private void DrawFolderOptions()
+    {
+        var config = plugin.GetFolderConfig(folderPath);
+        ImGui.TextUnformatted(GetFolderName(folderPath));
+        ImGui.TextDisabled(folderPath);
+
+        ImGui.Separator();
+        var favorite = config.Favorite;
+        if (ImGui.Checkbox("Favorite", ref favorite))
+        {
+            config.Favorite = favorite;
+            plugin.Configuration.Save();
+        }
+
+        var hidden = config.Hidden;
+        var hiddenLabel = hidden ? "Hidden" : "Hide from gallery";
+        if (ImGui.Checkbox(hiddenLabel, ref hidden))
+        {
+            config.Hidden = hidden;
+            plugin.Configuration.Save();
+        }
+
+        DrawFolderImageSelector(config);
+        DrawCropper();
+    }
+
+    private void DrawFolderImageSelector(GalleryFolderConfig config)
+    {
+        if (!ImGui.CollapsingHeader("Thumbnail", ImGuiTreeNodeFlags.DefaultOpen))
+            return;
+
+        var currentThumbnail = plugin.FolderThumbnailPath(folderPath, config);
+        ImGui.TextUnformatted(File.Exists(currentThumbnail) ? "Custom thumbnail set." : "Using default folder icon.");
+
+        if (ImGui.Button("Select PNG"))
+            fileDialogManager.OpenFileDialog("Select Folder Thumbnail Image", ".png", OnImageSelected);
+
+        if (File.Exists(currentThumbnail))
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Remove"))
+            {
+                File.Delete(currentThumbnail);
+                config.ThumbnailRevision = 0;
+                plugin.Configuration.Save();
             }
         }
     }
@@ -189,16 +262,32 @@ public sealed class DesignEditorWindow : Window, IDisposable
         {
             try
             {
-                ImageCropper.SaveCroppedPng(imagePath, plugin.ThumbnailPath(design!.Identifier), zoom, pan);
+                var outputPath = GetOutputThumbnailPath();
+                ImageCropper.SaveCroppedPng(imagePath, outputPath, zoom, pan);
+                plugin.Configuration.Save();
                 imagePath = string.Empty;
                 zoom = 1f;
                 pan = Vector2.Zero;
             }
             catch (Exception ex)
             {
-                Plugin.Log.Error(ex, "Could not save cropped thumbnail for {Identifier}.", design!.Identifier);
+                Plugin.Log.Error(ex, "Could not save cropped thumbnail.");
             }
         }
+    }
+
+    private string GetOutputThumbnailPath()
+    {
+        if (design != null)
+        {
+            var config = plugin.GetDesignConfig(design.Identifier);
+            plugin.AdvanceDesignThumbnail(design.Identifier, config);
+            return plugin.ThumbnailPath(design.Identifier, config);
+        }
+
+        var folderConfig = plugin.GetFolderConfig(folderPath);
+        plugin.AdvanceFolderThumbnail(folderPath, folderConfig);
+        return plugin.FolderThumbnailPath(folderPath, folderConfig);
     }
 
     private void DrawPreview(Vector2 frameSize)
@@ -237,5 +326,11 @@ public sealed class DesignEditorWindow : Window, IDisposable
         drawList.AddRectFilled(new Vector2(pos.X, framePos.Y), new Vector2(framePos.X, frameMax.Y), dimColor);
         drawList.AddRectFilled(new Vector2(frameMax.X, framePos.Y), new Vector2(pos.X + canvasSize.X, frameMax.Y), dimColor);
         drawList.AddRect(framePos, frameMax, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), 0, ImDrawFlags.None, 2f);
+    }
+
+    private static string GetFolderName(string path)
+    {
+        var index = path.LastIndexOf('/');
+        return index < 0 ? path : path[(index + 1)..];
     }
 }

@@ -11,5 +11,6 @@ public sealed class GlamourerDesign
     public DateTimeOffset LastEdit { get; init; }
     public bool QuickDesign { get; init; }
     public string SourceFile { get; init; } = string.Empty;
+    public string FileSystemFolder { get; init; } = string.Empty;
     public IReadOnlyList<string> GlamourerTags { get; init; } = [];
 }

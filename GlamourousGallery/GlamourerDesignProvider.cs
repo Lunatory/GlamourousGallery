@@ -59,6 +59,7 @@ public sealed class GlamourerDesignProvider
                     LastEdit = lastEdit < creationDate ? creationDate : lastEdit,
                     QuickDesign = ReadBool(root, "QuickDesign") ?? true,
                     SourceFile = file,
+                    FileSystemFolder = NormalizeFolderPath(ReadString(root, "FileSystemFolder")),
                     GlamourerTags = ReadTags(root),
                 });
             }
@@ -78,6 +79,11 @@ public sealed class GlamourerDesignProvider
         => root.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString() ?? string.Empty
             : string.Empty;
+
+    private static string NormalizeFolderPath(string path)
+        => string.Join(
+            '/',
+            path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private static DateTimeOffset? ReadDate(JsonElement root, string property)
         => root.TryGetProperty(property, out var value)

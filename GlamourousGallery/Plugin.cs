@@ -6,6 +6,7 @@ using Dalamud.Plugin.Services;
 using GlamourousGallery.Windows;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace GlamourousGallery;
 
@@ -81,8 +82,48 @@ public sealed class Plugin : IDalamudPlugin
     public string ThumbnailPath(string identifier)
         => Path.Combine(ThumbnailDirectory, $"{SanitizeFileName(identifier)}.png");
 
+    public string ThumbnailPath(string identifier, GalleryDesignConfig config)
+        => config.ThumbnailRevision <= 0
+            ? ThumbnailPath(identifier)
+            : Path.Combine(ThumbnailDirectory, $"{SanitizeFileName(identifier)}_{config.ThumbnailRevision}.png");
+
+    public string FolderThumbnailPath(string folderPath)
+        => Path.Combine(ThumbnailDirectory, $"folder_{SanitizeFileName(folderPath)}.png");
+
+    public string FolderThumbnailPath(string folderPath, GalleryFolderConfig config)
+        => config.ThumbnailRevision <= 0
+            ? FolderThumbnailPath(folderPath)
+            : Path.Combine(ThumbnailDirectory, $"folder_{SanitizeFileName(folderPath)}_{config.ThumbnailRevision}.png");
+
+    public string DefaultFolderIconPath
+        => Path.Combine(PluginInterface.AssemblyLocation.DirectoryName ?? string.Empty, "foldericon.png");
+
     public bool HasThumbnail(string identifier)
         => File.Exists(ThumbnailPath(identifier));
+
+    public void AdvanceDesignThumbnail(string identifier, GalleryDesignConfig config)
+    {
+        DeleteThumbnailRevisions(SanitizeFileName(identifier));
+        config.ThumbnailRevision++;
+    }
+
+    public void AdvanceFolderThumbnail(string folderPath, GalleryFolderConfig config)
+    {
+        DeleteThumbnailRevisions($"folder_{SanitizeFileName(folderPath)}");
+        config.ThumbnailRevision++;
+    }
+
+    public GalleryFolderConfig GetFolderConfig(string folderPath)
+    {
+        folderPath = NormalizeFolderPath(folderPath);
+        if (!Configuration.Folders.TryGetValue(folderPath, out var config))
+        {
+            config = new GalleryFolderConfig();
+            Configuration.Folders[folderPath] = config;
+        }
+
+        return config;
+    }
 
     public void ApplyDesign(GlamourerDesign design)
         => ApplyDesign(design, GetDesignConfig(design.Identifier));
@@ -140,6 +181,32 @@ public sealed class Plugin : IDalamudPlugin
             value = value.Replace(c, '_');
         return value;
     }
+
+    private void DeleteThumbnailRevisions(string prefix)
+    {
+        foreach (var file in Directory.EnumerateFiles(ThumbnailDirectory, $"{prefix}*.png")
+                     .Where(file =>
+                     {
+                         var name = Path.GetFileNameWithoutExtension(file);
+                         return name.Equals(prefix, StringComparison.OrdinalIgnoreCase)
+                             || name.StartsWith(prefix + "_", StringComparison.OrdinalIgnoreCase);
+                     }))
+        {
+            try
+            {
+                File.Delete(file);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not delete old thumbnail {File}.", file);
+            }
+        }
+    }
+
+    public static string NormalizeFolderPath(string path)
+        => string.Join(
+            '/',
+            path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private void OnCommand(string command, string args)
     {

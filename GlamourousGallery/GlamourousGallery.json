@@ -9,5 +9,7 @@
         "gallery",
         "glamour"
     ],
-    "RepoUrl": "https://github.com/lunatory/GlamourousGallery"
+    "RepoUrl": "https://github.com/lunatory/GlamourousGallery",
+    "Changelog": "-1.1.0.0\n    Added Tag Colors. Added folder support. Added favorites button. Added settings for sorting favorites. Fixed overwriting thumbnails."
+
 }

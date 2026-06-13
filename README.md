@@ -26,3 +26,7 @@ Custom cropped thumbnails are saved to `%APPDATA%\XIVLauncher\pluginConfigs\Glam
 ## Notes
 
 This plugin intentionally avoids a compile-time dependency on Glamourer or Penumbra. Glamourer remains the source of truth for designs, and GlamourousGallery stores only gallery-specific metadata keyed by Glamourer design identifier.
+
+## Disclaimer
+
+This plugin is almost entirely AI-generated, with minimal human changes. If you are not comfortable with this please do not install it.
