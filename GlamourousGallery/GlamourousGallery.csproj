@@ -1,13 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Version>0.0.0.1</Version>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <IsPackable>false</IsPackable>
+      <Authors></Authors>
+      <Company></Company>
+      <Version>1.0.0.0</Version>
+      <Description>A neat little gallery for your Glamourer presets</Description>
+      <Copyright></Copyright>
+      <PackageProjectUrl>https://github.com/kelvin124124/OopsAllLalafellsSRE</PackageProjectUrl>
+      <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+      <IsPackable>false</IsPackable>
+      <TargetFramework>net10.0-windows7.0</TargetFramework>
+      <RootNamespace>Hrothremover</RootNamespace>
+      <PackageId>HrothRemover</PackageId>
+      <Configurations>Debug;Release</Configurations>
+      <Platforms>AnyCPU</Platforms>
+      
   </PropertyGroup>
-  <ItemGroup>
-    <None Include=".github\workflows\create_release.yml" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Update="DalamudPackager" Version="15.0.0" />
+        <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="DalamudPackager.targets" />
+    </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="10.0.0" />
