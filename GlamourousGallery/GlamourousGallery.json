@@ -1,0 +1,12 @@
+{
+  "Author": "Uki",
+  "Name": "GlamourousGallery",
+  "Punchline": "A gallery for Glamourer designs.",
+  "Description": "Browse Glamourer designs as a thumbnail gallery, apply them quickly, and organize them with favorites, hidden entries, tags, and custom cropped thumbnails. Use /glamgallery to open the gallery.",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "glamourer",
+    "gallery",
+    "glamour"
+  ]
+}
