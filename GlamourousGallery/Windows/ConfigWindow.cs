@@ -142,6 +142,13 @@ public sealed class ConfigWindow : Window, IDisposable
             configuration.ShowFavoritesOnTop = favoritesOnTop;
             configuration.Save();
         }
+
+        var showFavoriteNameMarker = configuration.ShowFavoriteNameMarker;
+        if (ImGui.Checkbox("Show * before favorite names", ref showFavoriteNameMarker))
+        {
+            configuration.ShowFavoriteNameMarker = showFavoriteNameMarker;
+            configuration.Save();
+        }
     }
 
     private void DrawTagOptions()
@@ -186,6 +193,17 @@ public sealed class ConfigWindow : Window, IDisposable
                     color.W = 1f;
                     configuration.TagColors[tag] = ColorToU32(color);
                     configuration.Save();
+                }
+
+                var hex = ColorToHex(color);
+                ImGui.SetNextItemWidth(110);
+                if (ImGui.InputText("Hex", ref hex, 7, ImGuiInputTextFlags.CharsHexadecimal | ImGuiInputTextFlags.CharsUppercase))
+                {
+                    if (TryParseHexColor(hex, out var parsed))
+                    {
+                        configuration.TagColors[tag] = ColorToU32(parsed);
+                        configuration.Save();
+                    }
                 }
 
                 ImGui.EndPopup();
@@ -242,6 +260,26 @@ public sealed class ConfigWindow : Window, IDisposable
             | ((uint)(Math.Clamp(color.Y, 0, 1) * 255) << 8)
             | ((uint)(Math.Clamp(color.Z, 0, 1) * 255) << 16)
             | ((uint)(Math.Clamp(color.W, 0, 1) * 255) << 24);
+
+    private static string ColorToHex(Vector4 color)
+        => $"{(int)(Math.Clamp(color.X, 0, 1) * 255):X2}{(int)(Math.Clamp(color.Y, 0, 1) * 255):X2}{(int)(Math.Clamp(color.Z, 0, 1) * 255):X2}";
+
+    private static bool TryParseHexColor(string value, out Vector4 color)
+    {
+        value = value.Trim().TrimStart('#');
+        if (value.Length == 6 && uint.TryParse(value, System.Globalization.NumberStyles.HexNumber, null, out var packed))
+        {
+            color = new Vector4(
+                ((packed >> 16) & 0xFF) / 255f,
+                ((packed >> 8) & 0xFF) / 255f,
+                (packed & 0xFF) / 255f,
+                1f);
+            return true;
+        }
+
+        color = default;
+        return false;
+    }
 
     private readonly ref struct DisabledScope
     {

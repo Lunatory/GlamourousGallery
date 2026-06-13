@@ -84,6 +84,7 @@ public sealed class MainWindow : Window, IDisposable
         {
             DesignSortMode.Newest => "Newest",
             DesignSortMode.LastUpdated => "Last updated",
+            DesignSortMode.Tag => "Tag",
             _ => "Alphabetical",
         };
 
@@ -92,6 +93,7 @@ public sealed class MainWindow : Window, IDisposable
             DrawSortOption("Alphabetical", DesignSortMode.Alphabetical);
             DrawSortOption("Newest", DesignSortMode.Newest);
             DrawSortOption("Last updated", DesignSortMode.LastUpdated);
+            DrawSortOption("Tag", DesignSortMode.Tag);
             ImGui.EndCombo();
         }
 
@@ -194,6 +196,9 @@ public sealed class MainWindow : Window, IDisposable
         {
             DesignSortMode.Newest => sorted.ThenByDescending(e => e.CreationDate),
             DesignSortMode.LastUpdated => sorted.ThenByDescending(e => e.LastEdit),
+            DesignSortMode.Tag => sorted
+                .ThenBy(e => GetTagSortKey(e), StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase),
             _ => sorted.ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase),
         };
 
@@ -343,7 +348,7 @@ public sealed class MainWindow : Window, IDisposable
                 editor.OpenFolder(entry.Folder!.Path);
         }
 
-        var star = IsFavorite(entry) ? "* " : string.Empty;
+        var star = plugin.Configuration.ShowFavoriteNameMarker && IsFavorite(entry) ? "* " : string.Empty;
         var hidden = IsHidden(entry) ? " (hidden)" : string.Empty;
         var displayName = TruncateToWidth($"{star}{entry.Name}{hidden}", size.X);
         ImGui.TextUnformatted(displayName);
@@ -352,7 +357,12 @@ public sealed class MainWindow : Window, IDisposable
 
         var subtitle = entry.Design == null ? "Folder" : GetDesignSubtitle(entry.Design);
         if (!string.IsNullOrEmpty(subtitle))
-            ImGui.TextDisabled(subtitle);
+        {
+            var displaySubtitle = TruncateToWidth(subtitle, size.X);
+            ImGui.TextDisabled(displaySubtitle);
+            if (ImGui.IsItemHovered() && displaySubtitle.EndsWith("...", StringComparison.Ordinal))
+                ImGui.SetTooltip(subtitle);
+        }
         else
             ImGui.Dummy(new Vector2(1, ImGui.GetTextLineHeightWithSpacing()));
 
@@ -451,12 +461,25 @@ public sealed class MainWindow : Window, IDisposable
             ? plugin.GetDesignConfig(entry.Design.Identifier).Hidden
             : plugin.GetFolderConfig(entry.Folder!.Path).Hidden;
 
+    private string GetTagSortKey(GalleryEntry entry)
+    {
+        if (entry.Design == null)
+            return string.Empty;
+
+        return entry.Design.GlamourerTags
+            .Concat(plugin.GetDesignConfig(entry.Design.Identifier).Tags)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault() ?? string.Empty;
+    }
+
     private string GetDesignSubtitle(GlamourerDesign design)
     {
         return plugin.Configuration.DesignSubtitle switch
         {
             DesignSubtitleMode.LastModifiedDate => design.LastEdit.ToLocalTime().ToString("yyyy/MM/dd  HH:mm"),
-            DesignSubtitleMode.FolderName when !string.IsNullOrEmpty(design.FileSystemFolder) => GetFolderName(design.FileSystemFolder),
+            DesignSubtitleMode.FolderName when !string.IsNullOrEmpty(design.FileSystemFolder) => design.FileSystemFolder,
             DesignSubtitleMode.FolderName => plugin.Configuration.MissingFolderSubtitle switch
             {
                 MissingFolderSubtitleMode.LastModifiedDate => design.LastEdit.ToLocalTime().ToString("yyyy/MM/dd  HH:mm"),

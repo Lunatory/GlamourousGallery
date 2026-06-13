@@ -17,6 +17,7 @@ public class Configuration : IPluginConfiguration
     public bool ShowFolders { get; set; }
     public bool ShowFoldersBeforeDesigns { get; set; } = true;
     public bool ShowFavoritesOnTop { get; set; }
+    public bool ShowFavoriteNameMarker { get; set; } = true;
     public DesignSubtitleMode DesignSubtitle { get; set; } = DesignSubtitleMode.CreationDate;
     public MissingFolderSubtitleMode MissingFolderSubtitle { get; set; } = MissingFolderSubtitleMode.CreationDate;
     public Dictionary<string, GalleryDesignConfig> Designs { get; set; } = new(StringComparer.OrdinalIgnoreCase);

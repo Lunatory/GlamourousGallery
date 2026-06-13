@@ -10,6 +10,6 @@
         "glamour"
     ],
     "RepoUrl": "https://github.com/lunatory/GlamourousGallery",
-    "Changelog": "-1.1.0.0\n    Added Tag Colors. Added folder support. Added favorites button. Added settings for sorting favorites. Fixed overwriting thumbnails."
+    "Changelog": "-1.1.0.1\n    Added hex field to color picker. Folder footer option now shows full path. Added sorting by tags. Added setting to remove favorite prefix.\n\n-1.1.0.0\n    Added Tag Colors. Added folder support. Added favorites button. Added settings for sorting favorites. Fixed overwriting thumbnails."
 
 }
