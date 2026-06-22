@@ -18,6 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
     [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
+    [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     public Configuration Configuration { get; }
@@ -125,6 +126,23 @@ public sealed class Plugin : IDalamudPlugin
         return config;
     }
 
+    public GalleryCharacterViewConfig GetCharacterViewConfig()
+    {
+        Configuration.CharacterViewConfigs ??= new(StringComparer.OrdinalIgnoreCase);
+
+        var key = GetCurrentCharacterKey();
+        if (!Configuration.CharacterViewConfigs.TryGetValue(key, out var config))
+        {
+            config = new GalleryCharacterViewConfig();
+            Configuration.CharacterViewConfigs[key] = config;
+        }
+
+        if (string.IsNullOrWhiteSpace(config.Filter))
+            config.Filter = "All";
+
+        return config;
+    }
+
     public void ApplyDesign(GlamourerDesign design)
         => ApplyDesign(design, GetDesignConfig(design.Identifier));
 
@@ -207,6 +225,11 @@ public sealed class Plugin : IDalamudPlugin
         => string.Join(
             '/',
             path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+    private static string GetCurrentCharacterKey()
+        => PlayerState.IsLoaded && PlayerState.ContentId != 0
+            ? PlayerState.ContentId.ToString()
+            : "Unknown";
 
     private void OnCommand(string command, string args)
     {

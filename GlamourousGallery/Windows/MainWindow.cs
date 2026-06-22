@@ -16,8 +16,6 @@ public sealed class MainWindow : Window, IDisposable
     private readonly Plugin plugin;
     private readonly DesignEditorWindow editor;
     private string search = string.Empty;
-    private DesignSortMode sortMode = DesignSortMode.Alphabetical;
-    private string filter = "All";
     private string currentFolder = string.Empty;
     private int page;
 
@@ -57,6 +55,7 @@ public sealed class MainWindow : Window, IDisposable
 
     private void DrawToolbar()
     {
+        var viewConfig = plugin.GetCharacterViewConfig();
         var available = ImGui.GetContentRegionAvail().X;
         ImGui.SetNextItemWidth(Math.Max(160, available - 300));
         if (ImGui.InputTextWithHint("###Search", "Search Bar", ref search, 128))
@@ -64,14 +63,15 @@ public sealed class MainWindow : Window, IDisposable
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(135 * ImGuiHelpers.GlobalScale);
-        if (ImGui.BeginCombo("###Filter", filter))
+        if (ImGui.BeginCombo("###Filter", viewConfig.Filter))
         {
             foreach (var option in BuildFilterOptions())
             {
-                if (ImGui.Selectable(option, option == filter))
+                if (ImGui.Selectable(option, option == viewConfig.Filter))
                 {
-                    filter = option;
+                    viewConfig.Filter = option;
                     page = 0;
+                    plugin.Configuration.Save();
                 }
             }
 
@@ -80,7 +80,7 @@ public sealed class MainWindow : Window, IDisposable
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-        var sortLabel = sortMode switch
+        var sortLabel = viewConfig.SortMode switch
         {
             DesignSortMode.Newest => "Newest",
             DesignSortMode.LastUpdated => "Last updated",
@@ -90,10 +90,10 @@ public sealed class MainWindow : Window, IDisposable
 
         if (ImGui.BeginCombo("###Sort", sortLabel))
         {
-            DrawSortOption("Alphabetical", DesignSortMode.Alphabetical);
-            DrawSortOption("Newest", DesignSortMode.Newest);
-            DrawSortOption("Last updated", DesignSortMode.LastUpdated);
-            DrawSortOption("Tag", DesignSortMode.Tag);
+            DrawSortOption(viewConfig, "Alphabetical", DesignSortMode.Alphabetical);
+            DrawSortOption(viewConfig, "Newest", DesignSortMode.Newest);
+            DrawSortOption(viewConfig, "Last updated", DesignSortMode.LastUpdated);
+            DrawSortOption(viewConfig, "Tag", DesignSortMode.Tag);
             ImGui.EndCombo();
         }
 
@@ -117,12 +117,13 @@ public sealed class MainWindow : Window, IDisposable
         }
     }
 
-    private void DrawSortOption(string label, DesignSortMode mode)
+    private void DrawSortOption(GalleryCharacterViewConfig viewConfig, string label, DesignSortMode mode)
     {
-        if (ImGui.Selectable(label, sortMode == mode))
+        if (ImGui.Selectable(label, viewConfig.SortMode == mode))
         {
-            sortMode = mode;
+            viewConfig.SortMode = mode;
             page = 0;
+            plugin.Configuration.Save();
         }
     }
 
@@ -180,6 +181,7 @@ public sealed class MainWindow : Window, IDisposable
                 || plugin.GetDesignConfig(d.Identifier).Tags.Any(t => t.Contains(search, StringComparison.OrdinalIgnoreCase)));
         }
 
+        var filter = plugin.GetCharacterViewConfig().Filter;
         if (filter == "Favorites")
             query = query.Where(d => plugin.GetDesignConfig(d.Identifier).Favorite);
         else if (filter != "All")
@@ -192,7 +194,7 @@ public sealed class MainWindow : Window, IDisposable
     private IEnumerable<GalleryEntry> SortEntries(IEnumerable<GalleryEntry> entries)
     {
         var sorted = entries.OrderBy(e => SortBucket(e));
-        sorted = sortMode switch
+        sorted = plugin.GetCharacterViewConfig().SortMode switch
         {
             DesignSortMode.Newest => sorted.ThenByDescending(e => e.CreationDate),
             DesignSortMode.LastUpdated => sorted.ThenByDescending(e => e.LastEdit),

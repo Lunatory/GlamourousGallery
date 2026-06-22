@@ -7,7 +7,7 @@ namespace GlamourousGallery;
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     public int DesignsPerPage { get; set; } = 10;
     public float ThumbnailScale { get; set; } = 1f;
@@ -23,11 +23,24 @@ public class Configuration : IPluginConfiguration
     public Dictionary<string, GalleryDesignConfig> Designs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, GalleryFolderConfig> Folders { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public Dictionary<string, uint> TagColors { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, GalleryCharacterViewConfig> CharacterViewConfigs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public void Save()
     {
+        Version = 2;
+        Designs ??= new Dictionary<string, GalleryDesignConfig>(StringComparer.OrdinalIgnoreCase);
+        Folders ??= new Dictionary<string, GalleryFolderConfig>(StringComparer.OrdinalIgnoreCase);
+        TagColors ??= new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        CharacterViewConfigs ??= new Dictionary<string, GalleryCharacterViewConfig>(StringComparer.OrdinalIgnoreCase);
         Plugin.PluginInterface.SavePluginConfig(this);
     }
+}
+
+[Serializable]
+public sealed class GalleryCharacterViewConfig
+{
+    public string Filter { get; set; } = "All";
+    public DesignSortMode SortMode { get; set; } = DesignSortMode.Alphabetical;
 }
 
 [Serializable]
